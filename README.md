@@ -12,52 +12,19 @@ Use the package in directly in your python code (`pip install llmt`), or as a lo
 
 ```python
 from llmt import LLMT
-from myfunctions import function
 
-tools = [
-    {
-        "function": {
-            "required": ["value1", "value2"],
-            "name": "add_decimal_values",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "value2": {
-                        "type": "integer",
-                        "description": "The second decimal value to add. For example, 10",
-                    },
-                    "value1": {
-                        "type": "integer",
-                        "description": "The first decimal value to add. For example, 5",
-                    },
-                },
-            },
-            "description": "Add two decimal values and return the result.\n",
-        },
-        "type": "function",
-    }
-]
 
 llmt = LLMT()
 llmt.init_assistant(
     "dataengineer",
     api_key="...",
     model="gpt-3.5-turbo",
-    assistant_description=(
-        " ".join(
-            [
-                "You are a data engineer, and an expert with python,",
-                "sqlalchemy, pandas, and snowflake. Answer questions",
-                "briefly in a sentence or less.",
-            ]
-        )
-    ),
-    tools=tools,
-)
+    assistant_description="You are a data engineer, and a python expert.",)
+llmt.init_functions(["./my_functions.py"])
 llmt.init_chat("single_chat")
+
 response = llmt.run(
-    "What's the result of 22 plus 5 in decimal added to the hexadecimal number A?",
-    functions=functions,
+    "What's the result of 22 plus 5 in decimal added to the hexadecimal number A?"
 )
 ```
 
