@@ -2,9 +2,6 @@ import argparse
 
 from llmt import LLMT
 
-# import all custom functions here
-import udfs.udfs as functions
-
 
 def parse_args() -> argparse.Namespace:
     """Parse the command line arguments.
@@ -45,8 +42,10 @@ if __name__ == "__main__":
         llmt.init_chat(chat_name)
 
     init_answers = llmt.init_prompt()
-    llmt.init_assistant(init_answers["assistant"])
+    selected_assistant = llmt.find_assistant(init_answers["assistant"])
+    llmt.init_assistant(selected_assistant["assistant_name"])
+    llmt.init_functions(selected_assistant["functions"])
     llmt.init_chat(init_answers["chat_name"])
 
-    for response in llmt.run_live(functions=functions):
+    for response in llmt.run_forever():
         print(f"\n{response}\n")

@@ -5,6 +5,8 @@ halo==0.0.31
 inquirer==3.2.4
 Jinja2==3.1.3
 PyYAML==6.0.1
+docstring-parser==0.16
+typing-extensions==4.10.0
 
 # user/additional requirements
 numpy==1.26.4

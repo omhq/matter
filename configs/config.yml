@@ -10,44 +10,10 @@ assistants:
       Answer questions briefly, in a sentence or less.
     api_key:
     model: gpt-3.5-turbo
-    tools:
-      - type: function
-        function:
-          name: add_decimal_values
-          description: >
-            Add two decimal values and return the result.
-          parameters:
-            type: object
-            properties:
-              value1:
-                type: integer
-                description: The first decimal value to add. For example, 5
-              value2:
-                type: integer
-                description: The second decimal value to add. For example, 10
-          required:
-            - value1
-            - value2
+    functions:
+      - /workspace/udfs/udfs.py
 
-      - type: function
-        function:
-          name: add_hexadecimal_values
-          description: >
-            Add two hexadecimal values
-          parameters:
-            type: object
-            properties:
-              value1:
-                type: string
-                description: The first hexadecimal value to add. For example, 5
-              value2:
-                type: string
-                description: The second hexadecimal value to add. For example, A
-          required:
-            - value1
-            - value2
-
-  - name: datadog-expert
+  - name: datadog-wizard
     assistant_name: DataDog wizard
     assistant_description: >
       You are a DataDog wizard. Answer questions briefly, in a sentence or less.

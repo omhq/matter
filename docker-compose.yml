@@ -11,8 +11,7 @@ services:
       - ./udfs:/workspace/udfs
 
       # optionally mount the source code
-      - ./llmt:/workspace/llmt
-      - ./cli.py:/workspace/cli.py
+      - ./:/workspace
     command: ["cli.py", "-f", "configs/config.yml"]
     environment:
       ROOT_PATH: /workspace

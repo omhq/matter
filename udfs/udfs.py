@@ -1,7 +1,6 @@
+import enum
 import json
-import time
 import logging
-from functools import wraps
 
 
 default_log_args = {
@@ -16,55 +15,54 @@ logging.basicConfig(**default_log_args)
 logger = logging.getLogger()
 
 
-def timer(func):
-    """Decorator for timing functions."""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        logger.info(f"{func.__name__} completed in {end_time - start_time} seconds")
-        return result
-    return wrapper
+def add_decimal_values(value1: int, value2: int) -> int:
+    """Add two decimal values together.
 
+    Args:
+        value1 (int): The first value.
+        value2 (int): The second value.
 
-@timer
-def add_decimal_values(arguments):
-    args = json.loads(arguments)
-    value1 = args["value1"]
-    value2 = args["value2"]
+    Returns:
+        int: The sum of the two values.
+    """
     return value1 + value2
 
 
-@timer
-def add_hexadecimal_values(arguments):
-    args = json.loads(arguments)
-    value1 = args["value1"]
-    value2 = args["value2"]
+def add_hexadecimal_values(value1: str, value2: str) -> str:
+    """Add two hexadecimal values together.
+
+    Args:
+        value1 (str): The first value.
+        value2 (str): The second value.
+
+    Returns:
+        str: The sum of the two values.
+    """
     decimal1 = int(value1, 16)
     decimal2 = int(value2, 16)
     return hex(decimal1 + decimal2)[2:]
 
 
-@timer
-def describe_table(arguments):
-    args = json.loads(arguments)
-    database = args["database"]
-    schema = args["schema"]
-    table = args["table"]
-    return f"DESCRIBE TABLE {database}.{schema}.{table}"
+class Unit(str, enum.Enum):
+    FAHRENHEIT = "fahrenheit"
+    CELSIUS = "celsius"
 
 
-@timer
-def load_data(arguments):
-    args = json.loads(arguments)
-    source = args["source"]
-    target = args["target"]
-    return f"INSERT INTO {target} SELECT * FROM {source}"
+def get_current_weather(location: str, unit: Unit = Unit.FAHRENHEIT):
+    """Get the current weather in a given location.
+    
+    Args:
+        location (str): The location to get the weather for
+        unit (Unit, optional): The unit to return the temperature in. Defaults to Unit.FAHRENHEIT.
 
-
-@timer
-def execute_select_query(arguments):
-    args = json.loads(arguments)
-    query = args["query"]
-    return f"SELECT * FROM {query}" 
+    Returns:
+        str: The current weather in the location
+    """
+    if "tokyo" in location.lower():
+        return json.dumps({"location": "Tokyo", "temperature": "10", "unit": unit})
+    elif "san francisco" in location.lower():
+        return json.dumps({"location": "San Francisco", "temperature": "72", "unit": unit})
+    elif "paris" in location.lower():
+        return json.dumps({"location": "Paris", "temperature": "22", "unit": unit})
+    else:
+        return json.dumps({"location": location, "temperature": "unknown"})

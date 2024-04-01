@@ -2,6 +2,7 @@ import inquirer
 
 from typing import List
 from halo import Halo
+from llmt.openai_types import FunctionCall
 from openai.types import CompletionChoice, CompletionUsage
 from openai.types.chat import (
     ChatCompletion,
@@ -71,11 +72,13 @@ def get_usage_as_string(usage: CompletionUsage) -> str:
     )
 
 
-def handle_chat_completion(messages, assistant, chat_manager, functions):
+def run_until_response(messages, assistant, chat_manager, function_manager):
     function_calls = []
 
     while True:
-        chat_completion: ChatCompletion = assistant.generate_response(messages)
+        chat_completion: ChatCompletion = assistant.generate_message(
+            messages, function_manager.functions_schema
+        )
         chat_completion_choice: CompletionChoice = chat_completion.choices[0]
         chat_completion_message: ChatCompletionMessage = chat_completion_choice.message
         usage: CompletionUsage = chat_completion.usage
@@ -89,17 +92,20 @@ def handle_chat_completion(messages, assistant, chat_manager, functions):
             messages.append(message)
 
             for tool_call in tool_calls:
+                args = tool_call.function.arguments
                 fn_name = tool_call.function.name
-                arguments = tool_call.function.arguments
-                function = getattr(functions, fn_name)
-                result = function(arguments)
+                function_call: FunctionCall = {
+                    "name": fn_name,
+                    "arguments": args,
+                }
+                result = function_manager.run_function(function_call)
                 message = {
                     "role": "tool",
-                    "content": str(result),
+                    "content": str(result.content),
                     "tool_call_id": tool_call.id,
                     "name": fn_name,
                 }
-                template_message = {**message, "arguments": arguments}
+                template_message = {**message, "arguments": args}
                 messages.append(message)
                 chat_manager.save_to_chat(message)
                 function_calls.append(template_message)
@@ -121,17 +127,18 @@ def handle_chat_completion(messages, assistant, chat_manager, functions):
     }
 
 
-def chat_once(
+def ask_once(
     input_text,
     chat_manager,
+    function_manager,
     assistant: OpenAIAssistant,
-    functions,
 ):
     """Chat with the assistant once.
 
     Args:
         input_text (str): The input text.
         chat_manager (ChatManager): The chat manager.
+        function_manager (FunctionManager): The function manager.
         assistant (OpenAIAssistant): The assistant.
         functions (module): The functions module.
 
@@ -142,7 +149,12 @@ def chat_once(
     messages = [{"role": "system", "content": assistant.description}, message]
     chat_manager.save_to_chat(message)
 
-    response = handle_chat_completion(messages, assistant, chat_manager, functions)
+    response = run_until_response(
+        messages,
+        assistant,
+        chat_manager,
+        function_manager,
+    )
     messages = response["messages"]
     message = {"role": "assistant", "content": response["response"]}
     messages.append(message)
@@ -156,17 +168,18 @@ def chat_once(
     }
 
 
-def chat(
+def ask(
     chat_manager,
-    file_handler,
+    file_manager,
+    function_manager,
     assistant: OpenAIAssistant,
-    functions,
 ):
     """Chat with the assistant.
 
     Args:
         chat_manager (ChatManager): The chat manager.
-        file_handler (InputFileHandler or None): The input file handler object or None.
+        file_manager (FileManager or None): The input file handler object or None.
+        function_manager (FunctionManager): The function manager.
         assistant (OpenAIAssistant): The assistant.
 
     Returns:
@@ -181,10 +194,10 @@ def chat(
     spinner = Halo(text="Working...", spinner="dots")
 
     while True:
-        if file_handler:
-            print(f"{Style.GREEN}You{Style.RESET}: using {file_handler.input_file}")
+        if file_manager:
+            print(f"{Style.GREEN}You{Style.RESET}: using {file_manager.input_file}")
 
-            for event in file_handler.events_generator():
+            for event in file_manager.events_generator():
                 input_text = event
                 break
         else:
@@ -201,22 +214,27 @@ def chat(
         chat_manager.save_to_chat(message)
 
         spinner.start()
-        response = handle_chat_completion(messages, assistant, chat_manager, functions)
+        response = run_until_response(
+            messages,
+            assistant,
+            chat_manager,
+            function_manager,
+        )
         messages = response["messages"]
         spinner.stop()
 
         message = {"role": "assistant", "content": response["response"]}
         messages.append(message)
         chat_manager.save_to_chat(message)
-        full_respose = {
+        to_user_response = {
             "assistant": assistant,
             "response": response["response"],
             "function_calls": response["function_calls"],
             "info": get_usage_as_string(response["usage"]),
         }
 
-        if file_handler:
-            file_handler.write_to_output(full_respose)
+        if file_manager:
+            file_manager.write_to_output(to_user_response)
         else:
             yield " ".join(
                 [
