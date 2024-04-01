@@ -1,5 +1,9 @@
 # LLMT
 
+[![PyPI version](https://badge.fury.io/py/llmt.svg)](https://badge.fury.io/py/llmt)
+
+## Overview
+
 Convenient LLM chat wrapper for data pipelines, CI/CD, or personal workspaces.
 
 Supports local function calling, chat history retention, and can run anywhere. Chat using a terminal, input/output files, or directly through LLMT API.
