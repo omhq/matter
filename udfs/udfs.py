@@ -1,5 +1,3 @@
-import enum
-import json
 import logging
 
 
@@ -15,54 +13,49 @@ logging.basicConfig(**default_log_args)
 logger = logging.getLogger()
 
 
-def add_decimal_values(value1: int, value2: int) -> int:
-    """Add two decimal values together.
+def fetch_customers() -> list[dict[str, str | int]]:
+    """Fetches a list of customers from a database.
 
     Args:
-        value1 (int): The first value.
-        value2 (int): The second value.
-
+        format (str): The format to return the data in. Defaults to "json".
+    
     Returns:
-        int: The sum of the two values.
+        list: A list of dictionaries, each containing customer information.
     """
-    return value1 + value2
+    return [
+        {"name": "Alice", "age": 25, "city": "New York"},
+        {"name": "Bob", "age": 30, "city": "San Francisco"},
+        {"name": "Charlie", "age": 35, "city": "Chicago"},
+        {"name": "David", "age": 40, "city": "New York"},
+        {"name": "Eve", "age": 45, "city": "San Francisco"},
+        {"name": "Frank", "age": 50, "city": "New York"},
+        {"name": "Grace", "age": 55, "city": "Chicago"},
+    ]
 
 
-def add_hexadecimal_values(value1: str, value2: str) -> str:
-    """Add two hexadecimal values together.
-
-    Args:
-        value1 (str): The first value.
-        value2 (str): The second value.
-
-    Returns:
-        str: The sum of the two values.
-    """
-    decimal1 = int(value1, 16)
-    decimal2 = int(value2, 16)
-    return hex(decimal1 + decimal2)[2:]
-
-
-class Unit(str, enum.Enum):
-    FAHRENHEIT = "fahrenheit"
-    CELSIUS = "celsius"
-
-
-def get_current_weather(location: str, unit: Unit = Unit.FAHRENHEIT):
-    """Get the current weather in a given location.
+def fetch_products_sold_by_city(city: str) -> list[dict[str, str | float | int] | None]:
+    """Fetches a list of products sold in a city.
     
     Args:
-        location (str): The location to get the weather for
-        unit (Unit, optional): The unit to return the temperature in. Defaults to Unit.FAHRENHEIT.
-
+        city (str): The city to fetch products for.
+    
     Returns:
-        str: The current weather in the location
+        list: A list of dictionaries, each containing product information.
     """
-    if "tokyo" in location.lower():
-        return json.dumps({"location": "Tokyo", "temperature": "10", "unit": unit})
-    elif "san francisco" in location.lower():
-        return json.dumps({"location": "San Francisco", "temperature": "72", "unit": unit})
-    elif "paris" in location.lower():
-        return json.dumps({"location": "Paris", "temperature": "22", "unit": unit})
-    else:
-        return json.dumps({"location": location, "temperature": "unknown"})
+    if city == "New York":
+        return [
+            {"name": "Apple", "price": 1.0, "quantity": 10},
+            {"name": "Banana", "price": 2.0, "quantity": 20},
+        ]
+    
+    if city == "San Francisco":
+        return [
+            {"name": "Orange", "price": 3.0, "quantity": 30},
+            {"name": "Pear", "price": 4.0, "quantity": 40},
+        ]
+    
+    if city == "Chicago":
+        return [
+            {"name": "Grape", "price": 5.0, "quantity": 50},
+            {"name": "Kiwi", "price": 6.0, "quantity": 60},
+        ]

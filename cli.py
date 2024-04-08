@@ -43,8 +43,11 @@ if __name__ == "__main__":
 
     init_answers = llmt.init_prompt()
     selected_assistant = llmt.find_assistant(init_answers["assistant"])
-    llmt.init_assistant(selected_assistant["assistant_name"])
-    llmt.init_functions(selected_assistant["functions"])
+    llmt.init_assistant(selected_assistant["name"])
+
+    if functions := selected_assistant.get("functions"):
+        llmt.init_functions(selected_assistant["functions"])
+
     llmt.init_chat(init_answers["chat_name"])
 
     for response in llmt.run_forever():
