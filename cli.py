@@ -42,13 +42,18 @@ if __name__ == "__main__":
         llmt.init_chat(chat_name)
 
     init_answers = llmt.init_prompt()
+    selected_chat = init_answers["chat_name"]
+
+    if selected_chat == "Create new chat file":
+        selected_chat = llmt.prompt_create_chat()
+
     selected_assistant = llmt.find_assistant(init_answers["assistant"])
     llmt.init_assistant(selected_assistant["name"])
 
     if functions := selected_assistant.get("functions"):
         llmt.init_functions(selected_assistant["functions"])
 
-    llmt.init_chat(init_answers["chat_name"])
+    llmt.init_chat(selected_chat)
 
     for response in llmt.run_forever():
         print(f"\n{response}\n")

@@ -49,7 +49,7 @@ def prompt_init(assistants, chats):
         ),
         inquirer.List(
             "chat_name",
-            message="Select an existing chat",
+            message="Select a chat file",
             choices=chats,
         ),
     ]

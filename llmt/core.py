@@ -32,7 +32,7 @@ class LLMT:
         if not self.configs:
             raise ValueError("No configuration file provided.")
 
-        return prompt_init(self.configs["assistants"], self.get_chats())
+        return prompt_init(self.configs["assistants"], (["Create new chat file"] + self.get_chats()))
 
     def find_assistant(self, assistant_name):
         return next(
