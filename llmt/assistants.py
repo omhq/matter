@@ -51,7 +51,7 @@ class OpenAIAssistant:
     def wrap_functions(self, functions):
         return [
             {"type": "function", "function": function} for function in functions
-        ]
+        ] if functions else None
 
     def generate_message(
         self, messages: List[ChatCompletionMessage], functions=None

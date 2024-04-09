@@ -76,8 +76,11 @@ def run_until_response(messages, assistant, chat_manager, function_manager):
     function_calls = []
 
     while True:
+        function_schema = (
+            function_manager.functions_schema if function_manager else None
+        )
         chat_completion: ChatCompletion = assistant.generate_message(
-            messages, function_manager.functions_schema
+            messages, function_schema
         )
         chat_completion_choice: CompletionChoice = chat_completion.choices[0]
         chat_completion_message: ChatCompletionMessage = chat_completion_choice.message
