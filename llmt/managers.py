@@ -75,10 +75,24 @@ class FileManager:
             with open(self.output_file, "w") as f:
                 f.write("")
 
+    def output_file_contents(self):
+        with open(self.output_file, "r") as f:
+            return f.read()
+
     def write_to_output(self, data):
         template = self.env.get_template(RESPONSE_TEMPLATE)
+        file_contents = self.output_file_contents()
+        date = time.strftime("%Y-%m-%d %I:%M%p")
+        data["date"] = date
+    
         with open(self.output_file, "w") as f:
             f.write(template.render(**data))
+
+            if file_contents:
+                f.write("\n\n")
+                f.write("---")
+                f.write("\n\n")
+                f.write(file_contents)
 
     def events_generator(self):
         yield from self.event_handler.events_generator()

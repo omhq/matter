@@ -23,7 +23,7 @@ from .functions import (
 from .openai_types import FinalResponseMessage, FunctionCall, GenericMessage, Message
 from .parsers import ArgSchemaParser, defargparsers
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 __all__ = [
     "LLMT",
     "OpenAIAssistant",

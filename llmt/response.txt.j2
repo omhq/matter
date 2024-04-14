@@ -1,5 +1,6 @@
-assistant: {{ assistant.name }}
+{{ date }} {{ assistant.name }}:
 
+{{ response }}
 {% if function_calls is defined and function_calls|length > 0 %}
 function calls: {{function_calls|length}}
 
@@ -9,5 +10,3 @@ function calls: {{function_calls|length}}
 {% endif %}
 
 {{ info }}
-
-{{ response }}
