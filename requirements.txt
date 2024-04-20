@@ -1,5 +1,6 @@
 # core requirements
 openai==1.14.1
+requests==2.31.0
 watchdog==4.0.0
 halo==0.0.31
 inquirer==3.2.4
