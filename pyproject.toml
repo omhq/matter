@@ -1,12 +1,12 @@
 [project]
 name = "llmt"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="Artem Golub", email="artem @ outermeasure.com"}
 ]
-description = "Convenient LLM chat wrapper for data pipelines, CI/CD, or personal workspaces."
+description = "LLMT aims to make it easy to programatically connect OpenAI and HuggingFace models to your data pipelines, CI/CD, or personal workspaces."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",

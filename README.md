@@ -2,11 +2,11 @@
 
 [![PyPI version](https://badge.fury.io/py/llmt.svg)](https://badge.fury.io/py/llmt)
 
-## Overview
+## What is this good for?
 
-Convenient LLM chat wrapper for data pipelines, CI/CD, or personal workspaces.
+LLMT aims to make it easy to programatically connect OpenAI and HuggingFace models to your data pipelines, CI/CD, or personal workspaces.
 
-Supports local function calling, chat history retention, and can run anywhere. Chat using a terminal, input/output files, or directly through LLMT API.
+Supports function calling, chat and context history retention. Python 3.12 and up.
 
 ### Usage
 
@@ -20,16 +20,17 @@ from llmt import LLMT
 
 llmt = LLMT()
 llmt.init_assistant(
-    "dataengineer",
+    "snowflake",
     api_key="...",
     model="gpt-3.5-turbo",
-    assistant_description="You are a data engineer, and a python expert.",)
-llmt.init_functions(["./my_functions.py"])
-llmt.init_chat("single_chat")
-
-response = llmt.run(
-    "What's the result of 22 plus 5 in decimal added to the hexadecimal number A?"
+    assistant_description="You are a snowflake expert. Answer questions briefly in a sentence or less."
 )
+
+llmt.init_functions(["./helper_functions.py"])
+llmt.init_context("snowflake")
+response = llmt.run("generate an example merge dml")
+
+print(response)
 ```
 
 ### Local workspace

@@ -2,7 +2,7 @@ version: "3"
 
 services:
   llmt-workspace:
-    image: omhq/llmt-workspace:0.0.4
+    image: omhq/llmt-workspace:0.0.5
     working_dir: /workspace
     volumes:
       - ./configs:/workspace/configs
