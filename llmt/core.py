@@ -93,7 +93,6 @@ class LLMT:
             raise ValueError("No chat initialized.")
 
         if self.context_manager.list_messages() == 0:
-            print({"role": "system", "content": self.assistant.description})
             self.context_manager.save(
                 {"role": "system", "content": self.assistant.description}
             )

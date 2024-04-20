@@ -5,14 +5,15 @@ services:
     image: omhq/llmt-workspace:0.0.4
     working_dir: /workspace
     volumes:
-      - ./chats:/workspace/chats
-      - ./files:/workspace/files
       - ./configs:/workspace/configs
+      - ./chats:/workspace/chats
+      - ./contexts:/workspace/contexts
+      - ./files:/workspace/files
+      - ./llmt:/workspace/llmt
       - ./udfs:/workspace/udfs
-
-      # optionally mount the source code
-      - ./:/workspace
-    command: ["cli.py", "-f", "configs/config.yml"]
+      - ./examples/simple.py:/workspace/simple.py
+      - ./examples/chat.py:/workspace/chat.py
+    command: ["chat.py", "-f", "configs/config.yml"]
     environment:
       ROOT_PATH: /workspace
       DEBUG: "true"
