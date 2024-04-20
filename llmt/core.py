@@ -1,9 +1,10 @@
 import os
+import time
 
-from .managers import ChatManager, FileManager, FunctionManager
+from .managers import ChatManager, ContextManager, FileManager, FunctionManager
 from .utils import load_config
 from .assistants import OpenAIAssistant
-from .prompts import prompt_create_chat, prompt_init, ask, ask_once
+from .prompts import prompt_create_chat, prompt_init, ask, ask_once, get_usage_as_string
 
 
 class LLMT:
@@ -16,6 +17,7 @@ class LLMT:
         self.config_file = kwargs.get("config_file", None)
         self.root_path = kwargs.get("root_path", os.getcwd())
         self.chat_manager = ChatManager(self.root_path)
+        self.context_manager = ContextManager(self.root_path)
 
         if self.config_file:
             self.configs = load_config(self.config_file)
@@ -23,7 +25,7 @@ class LLMT:
         self.init_file_manager()
 
     def get_chats(self):
-        return list(self.chat_manager.list_chats())
+        return list(self.chat_manager.list())
 
     def prompt_create_chat(self):
         return prompt_create_chat()
@@ -32,7 +34,9 @@ class LLMT:
         if not self.configs:
             raise ValueError("No configuration file provided.")
 
-        return prompt_init(self.configs["assistants"], (["Create new chat file"] + self.get_chats()))
+        return prompt_init(
+            self.configs["assistants"], (["Create new chat file"] + self.get_chats())
+        )
 
     def find_assistant(self, assistant_name):
         return next(
@@ -64,7 +68,11 @@ class LLMT:
 
     def init_chat(self, chat_name):
         self.chat = chat_name
-        self.chat_manager.init_chat(chat_name)
+        self.chat_manager.create(chat_name)
+
+    def init_context(self, chat_name):
+        self.chat = chat_name
+        self.context_manager.create(chat_name)
 
     def init_file_manager(self, **kwargs):
         if not self.configs:
@@ -84,25 +92,40 @@ class LLMT:
         if not self.chat:
             raise ValueError("No chat initialized.")
 
-        if self.chat_manager.list_messages() == 0:
-            self.chat_manager.save_to_chat(
+        if self.context_manager.list_messages() == 0:
+            print({"role": "system", "content": self.assistant.description})
+            self.context_manager.save(
                 {"role": "system", "content": self.assistant.description}
             )
 
+    def init_chat_history(self):
+        messages = self.chat_manager.get_history()
+        for message in messages:
+            self.file_manager.prepend_to_output(message)
+
     def run_forever(self):
         self.init_first_messages()
+
+        if self.file_manager:
+            self.init_chat_history()
+
         yield from ask(
             self.chat_manager,
+            self.context_manager,
             self.file_manager,
             self.function_manager,
             self.assistant,
         )
 
-    def run(self, message, functions=None):
+    def run(self, message):
         self.init_first_messages()
+
+        if self.file_manager:
+            self.init_chat_history()
+
         return ask_once(
             message,
-            self.chat_manager,
+            self.context_manager,
             self.function_manager,
             self.assistant,
         )

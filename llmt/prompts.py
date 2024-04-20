@@ -1,5 +1,7 @@
+import time
 import inquirer
 
+from pydantic import BaseModel
 from typing import List
 from halo import Halo
 from llmt.openai_types import FunctionCall
@@ -18,6 +20,38 @@ class Style:
     GREEN = "\033[32m"
     RESET = "\033[0m"
     YELLOW = "\033[33m"
+
+
+class ChatResponse(BaseModel):
+    role: str
+    content: str
+    function_calls: List[FunctionCall]
+    usage: dict
+    date: str
+
+
+def create_chat_message(role, content, function_calls=None, usage=None):
+    """Create a chat message.
+
+    Args:
+        role (str): Role name.
+        response (dict): The response.
+
+    Returns:
+        ChatResponse: The chat response.
+    """
+    if function_calls is None:
+        function_calls = []
+    if usage is None:
+        usage = {}
+
+    return ChatResponse(
+        role=role,
+        content=content,
+        function_calls=function_calls,
+        usage=usage,
+        date=time.strftime("%Y-%m-%d %I:%M%p"),
+    )
 
 
 def prompt_create_chat():
@@ -65,14 +99,14 @@ def get_usage_as_string(usage: CompletionUsage) -> str:
     """
     return ", ".join(
         [
-            f'completion tokens: {usage["completion_tokens"]}',
-            f'prompt tokens: {usage["prompt_tokens"]}',
-            f'total tokens: {usage["total_tokens"]}',
+            f'completion tokens: {usage.get("completion_tokens", "")}',
+            f'prompt tokens: {usage.get("prompt_tokens", "")}',
+            f'total tokens: {usage.get("total_tokens", "")}',
         ]
     )
 
 
-def run_until_response(messages, assistant, chat_manager, function_manager):
+def run_until_response(context, assistant, function_manager):
     function_calls = []
 
     while True:
@@ -80,7 +114,7 @@ def run_until_response(messages, assistant, chat_manager, function_manager):
             function_manager.functions_schema if function_manager else None
         )
         chat_completion: ChatCompletion = assistant.generate_message(
-            messages, function_schema
+            context, function_schema
         )
         chat_completion_choice: CompletionChoice = chat_completion.choices[0]
         chat_completion_message: ChatCompletionMessage = chat_completion_choice.message
@@ -92,7 +126,7 @@ def run_until_response(messages, assistant, chat_manager, function_manager):
                 chat_completion_message.tool_calls
             )
             message = {"role": "assistant", "tool_calls": tool_calls}
-            messages.append(message)
+            context.append(message)
 
             for tool_call in tool_calls:
                 args = tool_call.function.arguments
@@ -109,8 +143,7 @@ def run_until_response(messages, assistant, chat_manager, function_manager):
                     "name": fn_name,
                 }
                 template_message = {**message, "arguments": args}
-                messages.append(message)
-                chat_manager.save_to_chat(message)
+                context.append(message)
                 function_calls.append(template_message)
 
             continue
@@ -120,7 +153,7 @@ def run_until_response(messages, assistant, chat_manager, function_manager):
 
     return {
         "response": response,
-        "messages": messages,
+        "messages": context,
         "function_calls": function_calls,
         "usage": {
             "completion_tokens": usage.completion_tokens,
@@ -132,7 +165,7 @@ def run_until_response(messages, assistant, chat_manager, function_manager):
 
 def ask_once(
     input_text,
-    chat_manager,
+    context_manager,
     function_manager,
     assistant: OpenAIAssistant,
 ):
@@ -140,7 +173,7 @@ def ask_once(
 
     Args:
         input_text (str): The input text.
-        chat_manager (ChatManager): The chat manager.
+        context_manager (ContextManager): The context manager.
         function_manager (FunctionManager): The function manager.
         assistant (OpenAIAssistant): The assistant.
         functions (module): The functions module.
@@ -148,31 +181,33 @@ def ask_once(
     Returns:
         dict: The assistant, response, function calls, and usage information.
     """
+    context = context_manager.get_history()
+
     message = {"role": "user", "content": input_text}
-    messages = [{"role": "system", "content": assistant.description}, message]
-    chat_manager.save_to_chat(message)
+    context_manager.save(message)
+    context.append(message)
 
     response = run_until_response(
-        messages,
+        context,
         assistant,
-        chat_manager,
         function_manager,
     )
-    messages = response["messages"]
-    message = {"role": "assistant", "content": response["response"]}
-    messages.append(message)
-    chat_manager.save_to_chat(message)
 
-    return {
-        "assistant": assistant,
-        "response": response["response"],
-        "function_calls": response["function_calls"],
-        "info": get_usage_as_string(response["usage"]),
-    }
+    # context becomes the response messages
+    context = response["messages"]
+
+    message = {"role": "assistant", "content": response["response"]}
+    context_manager.save(message)
+    context.append(message)
+
+    return create_chat_message(
+        "system", response["response"], response["function_calls"], response["usage"]
+    ).model_dump()
 
 
 def ask(
     chat_manager,
+    context_manager,
     file_manager,
     function_manager,
     assistant: OpenAIAssistant,
@@ -181,6 +216,7 @@ def ask(
 
     Args:
         chat_manager (ChatManager): The chat manager.
+        context_manager (ContextManager): The context manager.
         file_manager (FileManager or None): The input file handler object or None.
         function_manager (FunctionManager): The function manager.
         assistant (OpenAIAssistant): The assistant.
@@ -193,7 +229,7 @@ def ask(
     """
     input_text = ""
     response = ""
-    messages = [{"role": "system", "content": assistant.description}]
+    context = context_manager.get_history()
     spinner = Halo(text="Working...", spinner="dots")
 
     while True:
@@ -213,31 +249,39 @@ def ask(
             break
 
         message = {"role": "user", "content": input_text}
-        messages.append(message)
-        chat_manager.save_to_chat(message)
+        context.append(message)
+        context_manager.save(message)
+
+        chat_user_message = create_chat_message("user", input_text).model_dump()
+        chat_manager.save(chat_user_message)
 
         spinner.start()
+
         response = run_until_response(
-            messages,
+            context,
             assistant,
-            chat_manager,
             function_manager,
         )
-        messages = response["messages"]
+
+        # context becomes the response messages
+        context = response["messages"]
+
         spinner.stop()
 
         message = {"role": "assistant", "content": response["response"]}
-        messages.append(message)
-        chat_manager.save_to_chat(message)
-        to_user_response = {
-            "assistant": assistant,
-            "response": response["response"],
-            "function_calls": response["function_calls"],
-            "info": get_usage_as_string(response["usage"]),
-        }
+        context.append(message)
+        context_manager.save(message)
+
+        chat_response = create_chat_message(
+            "system",
+            response["response"],
+            response["function_calls"],
+            response["usage"],
+        ).model_dump()
+        chat_manager.save(chat_response)
 
         if file_manager:
-            file_manager.write_to_output(to_user_response)
+            file_manager.prepend_to_output(chat_response)
         else:
             yield " ".join(
                 [

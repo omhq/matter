@@ -4,6 +4,7 @@ import json
 import time
 import jinja2
 import importlib.util
+from abc import ABC, abstractmethod
 
 from typing import Any, Callable, overload
 from inspect import getmembers, isfunction
@@ -16,6 +17,28 @@ from .json_type import JsonType
 from .openai_types import FunctionCall
 from .utils import logger
 from .consts import RESPONSE_TEMPLATE
+
+
+class FileManagerInterface(ABC):
+    @abstractmethod
+    def create(self, context_name):
+        pass
+
+    @abstractmethod
+    def get_history(self):
+        pass
+
+    @abstractmethod
+    def list(self):
+        pass
+
+    @abstractmethod
+    def list_messages(self):
+        pass
+
+    @abstractmethod
+    def save(self, message):
+        pass
 
 
 class EventHandler(FileSystemEventHandler):
@@ -67,31 +90,28 @@ class FileManager:
         )
 
     def init(self):
-        if not os.path.exists(self.input_file):
-            with open(self.input_file, "w") as f:
-                f.write("")
+        with open(self.input_file, "w") as f:
+            f.write("")
 
-        if not os.path.exists(self.output_file):
-            with open(self.output_file, "w") as f:
-                f.write("")
+        with open(self.output_file, "w") as f:
+            f.write("")
 
-    def output_file_contents(self):
+    def output_contents(self):
         with open(self.output_file, "r") as f:
             return f.read()
 
     def write_to_output(self, data):
+        with open(self.output_file, "w") as f:
+            f.write(data)
+
+    def prepend_to_output(self, data):
         template = self.env.get_template(RESPONSE_TEMPLATE)
-        file_contents = self.output_file_contents()
-        date = time.strftime("%Y-%m-%d %I:%M%p")
-        data["date"] = date
-    
+        file_contents = self.output_contents()
+
         with open(self.output_file, "w") as f:
             f.write(template.render(**data))
 
             if file_contents:
-                f.write("\n\n")
-                f.write("---")
-                f.write("\n\n")
                 f.write(file_contents)
 
     def events_generator(self):
@@ -102,14 +122,14 @@ class FileManager:
         self.observer.stop()
 
 
-class ChatManager:
+class ChatManager(FileManagerInterface):
     def __init__(self, path):
         self.path = f"{path}/chats"
 
         if not os.path.exists(self.path):
             os.makedirs(self.path)
 
-    def init_chat(self, chat_name):
+    def create(self, chat_name):
         self.chat_name = chat_name
         self.file_path = os.path.join(self.path, f"{self.chat_name}.json")
 
@@ -117,26 +137,80 @@ class ChatManager:
             with open(self.file_path, "w") as f:
                 json.dump([], f)
 
-    def save_to_chat(self, message):
+    def get_history(self):
+        with open(self.file_path) as f:
+            return json.load(f)
+
+    def list(self):
+        return [x.split(".")[0] for x in os.listdir(self.path) if x.endswith(".json")]
+
+    def list_messages(self):
+        with open(os.path.join(self.path, f"{self.chat_name}.json")) as f:
+            try:
+                return len(json.load(f))
+            except json.JSONDecodeError:
+                return 0
+
+    def save(self, message):
         chat_list = []
 
         with open(self.file_path) as f:
-            chat_list = json.load(f)
+            try:
+                chat_list = json.load(f)
+            except json.JSONDecodeError:
+                chat_list = []
 
         chat_list.append(message)
 
         with open(self.file_path, "w") as f:
             json.dump(chat_list, f, indent=4)
 
-    def list_chats(self):
+
+class ContextManager(FileManagerInterface):
+    def __init__(self, path):
+        self.path = f"{path}/contexts"
+
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+
+    def create(self, context_name):
+        self.context_name = context_name
+        self.file_path = os.path.join(self.path, f"{self.context_name}.json")
+
+        if not os.path.exists(self.file_path):
+            with open(self.file_path, "w") as f:
+                json.dump([], f)
+
+    def get_history(self):
+        with open(self.file_path) as f:
+            return json.load(f)
+
+    def list(self):
         return [x.split(".")[0] for x in os.listdir(self.path) if x.endswith(".json")]
 
     def list_messages(self):
-        with open(os.path.join(self.path, f"{self.chat_name}.json")) as f:
-            return len(json.load(f))
+        with open(os.path.join(self.path, f"{self.context_name}.json")) as f:
+            try:
+                return len(json.load(f))
+            except json.JSONDecodeError:
+                return 0
+
+    def save(self, message):
+        context_list = []
+
+        with open(self.file_path) as f:
+            try:
+                context_list = json.load(f)
+            except json.JSONDecodeError:
+                context_list = []
+
+        context_list.append(message)
+
+        with open(self.file_path, "w") as f:
+            json.dump(context_list, f, indent=4)
 
 
-class FunctionManager():
+class FunctionManager:
     def __init__(self, paths):
         self._paths = []
         self.functions = OpenAIFunctionSet(*([]))
@@ -147,10 +221,10 @@ class FunctionManager():
                 continue
             self._paths.append(path)
             self._init_functions(path)
-    
+
     def _path_exists(self, path):
         return os.path.exists(path)
-    
+
     def _module_functions(self, path):
         spec = importlib.util.spec_from_file_location("llmt.udfs", path)
         module = importlib.util.module_from_spec(spec)
@@ -173,8 +247,7 @@ class FunctionManager():
         return self.functions.functions_schema
 
     @overload
-    def add_function(self, function: OpenAIFunction) -> OpenAIFunction:
-        ...
+    def add_function(self, function: OpenAIFunction) -> OpenAIFunction: ...
 
     @overload
     def add_function(
@@ -187,8 +260,7 @@ class FunctionManager():
         serialize: bool = True,
         remove_call: bool = False,
         interpret_as_response: bool = False,
-    ) -> Callable[..., Any]:
-        ...
+    ) -> Callable[..., Any]: ...
 
     @overload
     def add_function(
@@ -200,8 +272,7 @@ class FunctionManager():
         serialize: bool = True,
         remove_call: bool = False,
         interpret_as_response: bool = False,
-    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
-        ...
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]: ...
 
     def add_function(
         self,

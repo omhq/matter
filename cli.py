@@ -40,6 +40,7 @@ if __name__ == "__main__":
     if create_chat or len(llmt.get_chats()) == 0:
         chat_name = llmt.prompt_create_chat()
         llmt.init_chat(chat_name)
+        llmt.init_context(chat_name)
 
     init_answers = llmt.init_prompt()
     selected_chat = init_answers["chat_name"]
@@ -54,6 +55,7 @@ if __name__ == "__main__":
         llmt.init_functions(selected_assistant["functions"])
 
     llmt.init_chat(selected_chat)
+    llmt.init_context(selected_chat)
 
     for response in llmt.run_forever():
         print(f"\n{response}\n")

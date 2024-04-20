@@ -1,12 +1,20 @@
-{{ date }} {{ assistant.name }}:
 
-{{ response }}
-{% if function_calls is defined and function_calls|length > 0 %}
-function calls: {{function_calls|length}}
+--- {{ date }} ---
+
+{{ role }}:
+
+{% if content %}
+{{ content }}
+{% endif -%}
 
 {% for function_call in function_calls %}
-- {{ function_call.name }}({{ function_call.arguments }}) -> {{ function_call.content }}
-{% endfor %}
-{% endif %}
 
-{{ info }}
+function calls:
+
+- {{ function_call.name }}
+{% endfor -%}
+
+{% if usage %}
+
+completion tokens: {{ usage.completion_tokens }} prompt tokens: {{ usage.prompt_tokens }} total tokens: {{ usage.total_tokens }}
+{% endif %}
