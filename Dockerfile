@@ -17,7 +17,7 @@ RUN python -m pip install -r requirements.txt
 RUN rm ./requirements.txt
 
 ADD ./llmt /workspace/llmt
-ADD ./udfs /workspace/udfs
-ADD ./cli.py /workspace/cli.py
+ADD ./examples/simple.py /workspace/simple.py
+ADD ./examples/chat.py /workspace/chat.py
 
 ENTRYPOINT ["python"]
